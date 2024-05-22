@@ -11,12 +11,17 @@ find_package(Matlab COMPONENTS
     ENG_LIBRARY
     SIMULINK)
 
-find_package(
-        BlockFactory COMPONENTS Core
+include_directories(
+        "$ENV{MSFS_SDK}/SimConnect SDK/include"
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 )
 
-include_directories(
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+link_directories("$ENV{MSFS_SDK}/SimConnect SDK/lib")
+
+add_definitions(
+        -DWIN32_LEAN_AND_MEAN
+        -DNOMINMAX
+        -DNOGDI
 )
 
 # Compile S-Function
@@ -24,10 +29,12 @@ matlab_add_mex(
     NAME SimConnectBusInterface
     SRC src/Simulink/SimConnectBusInterface.cpp
         src/Interface/SimConnectInterface.cpp
-    LINK_TO BlockFactory::Core)
+    LINK_TO SimConnect)
 
 add_custom_command(
         TARGET SimConnectBusInterface
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE_DIR:SimConnectBusInterface>/SimConnectBusInterface.mexw64" "${CMAKE_SOURCE_DIR}/matlab"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$ENV{MSFS_SDK}/SimConnect SDK/lib/SimConnect.dll" "${CMAKE_SOURCE_DIR}/matlab"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_SOURCE_DIR}/deps/SimConnect/SimConnect.cfg" "${CMAKE_SOURCE_DIR}/matlab"
 )
