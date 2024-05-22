@@ -3,7 +3,20 @@
 
 #include "simstruc.h"
 
+#include "BlockFactory/Core/Log.h"
+
+#include "SimConnectInterface.h"
+
 #include <string>
+
+#define PrefixParamIndex 0
+#define IsSinkParamIndex 1
+#define BusTypeParamIndex 2
+
+static const size_t NumPWork = 1;
+const bool ForwardLogsToStdErr = true;
+
+static void catchLogMessages(bool status, SimStruct* S);
 
 /*====================*
  * S-function methods *
@@ -16,25 +29,35 @@
  */
 static void mdlInitializeSizes(SimStruct *S)
 {
+    // Initialize the Log singleton
+    blockfactory::core::Log::getSingleton().clear();
+
     ssSetNumSFcnParams(S, 3);  /* Number of expected parameters */
+    // Set all parameters as non-tunable
+    ssSetSFcnParamNotTunable(S, PrefixParamIndex);
+    ssSetSFcnParamNotTunable(S, IsSinkParamIndex);
+    ssSetSFcnParamNotTunable(S, BusTypeParamIndex);
     if (ssGetNumSFcnParams(S) != ssGetSFcnParamsCount(S)) {
         /* Return if number of expected != number of actual parameters */
+        bfError << "Actual Parameters must be the same as expected parameters";
+        catchLogMessages(false, S);
         return;
     }
 
     // Check Parameter types
     bool res = true;
-    res &= mxIsChar(ssGetSFcnParam(S, 0));
-    res &= mxIsLogical(ssGetSFcnParam(S, 1));
-    res &= mxIsClass(ssGetSFcnParam(S, 2), "Simulink.Bus");
+    res &= mxIsChar(ssGetSFcnParam(S, PrefixParamIndex));
+    res &= mxIsDouble(ssGetSFcnParam(S, IsSinkParamIndex));
+    res &= mxIsClass(ssGetSFcnParam(S, BusTypeParamIndex), "Simulink.Bus");
 
     if (!res) {
+        bfError << "Parameter Types are not correct";
+        catchLogMessages(false, S);
         return;
     }
 
-    // Check if the block should act as source or sink. Return if an invalid type is encountered.
-
-    bool isSink = mxGetLogicals(ssGetSFcnParam(S, 1));
+    // Check if the block should act as source or sink, and configure the inputs/outputs accordingly
+    bool isSink = static_cast<bool>(mxGetPr(ssGetSFcnParam(S, IsSinkParamIndex))[0]);
     int numInputs;
     int numOutputs;
     if (isSink) {
@@ -58,16 +81,24 @@ static void mdlInitializeSizes(SimStruct *S)
         ssSetOutputPortWidth(S, 0, 1);
         ssSetBusOutputAsStruct(S, 0, 1);
         ssSetOutputPortBusMode(S, 0, SL_BUS_MODE);
+
+        // Get the bus type name
+        char *busName;
+        ssGetSFcnParamName(S, BusTypeParamIndex, &busName);
+
+        // Set the output bus name
+        ssSetBusOutputObjectName(S, 0, busName);
     }
 
     /* Compile-time handling */
     if (ssGetSimMode(S) != SS_SIMMODE_SIZES_CALL_ONLY) {
         int id = 0;
 
+
         /* Register bus object data type (passed in as the
-         * third parameter in the block dialog
+         * third parameter in the block dialog)
          */
-        ssRegisterTypeFromParameter(S, 2, &id);
+        ssRegisterTypeFromParameter(S, BusTypeParamIndex, &id);
 
         /* Set the bus data type identifier for the input
          * and output port data type of the block.
@@ -82,9 +113,10 @@ static void mdlInitializeSizes(SimStruct *S)
     ssSetNumSampleTimes(S, 1);
     ssSetNumRWork(S, 0);
     ssSetNumIWork(S, 0);
-    ssSetNumPWork(S, 1); // Set Pointer Work vector size to 1, the SimConnect Handler
+    ssSetNumPWork(S, NumPWork); // Set Pointer Work vector size to 1, the SimConnect Handler
     ssSetNumModes(S, 0);
     ssSetNumNonsampledZCs(S, 0);
+
 
     /* Specify the operating point save/restore compliance to be same as a 
      * built-in block */
@@ -141,6 +173,24 @@ static void mdlInitializeSampleTimes(SimStruct *S)
    */
   static void mdlStart(SimStruct *S)
   {
+    // Create the SimConnect Interface and save it in the Pointer work vector
+    auto *interface = new SimConnectInterface();
+    ssSetPWorkValue(S, 0, interface);
+
+    if (!interface) {
+        bfError << "Failed to create SimConnect Interface";
+        catchLogMessages(false, S);
+        return;
+    }
+
+      DTypeId    dType    = ssGetOutputPortDataType(S, 0);
+      int_T size = ssGetDataTypeSize(S, dType);
+
+      ssWarning(S, std::to_string(size).c_str());
+
+    bool res = interface->connect();
+
+      catchLogMessages(res, S);
   }
 #endif /*  MDL_START */
 
@@ -195,6 +245,84 @@ static void mdlOutputs(SimStruct *S, int_T tid)
  */
 static void mdlTerminate(SimStruct *S)
 {
+    if (!ssGetPWork(S)) {
+        return;
+    }
+
+    if (ssGetNumPWork(S) != NumPWork) {
+        bfError << "PWork should contain " << NumPWork << " elements.";
+        catchLogMessages(false, S);
+        return;
+    }
+
+    // Get SimConnect Interface
+    auto *interface = static_cast<SimConnectInterface*>(ssGetPWorkValue(S, 0));
+
+    // Disconnect from SimConnect
+    interface->disconnect();
+
+    delete interface;
+}
+
+static void catchLogMessages(bool status, SimStruct* S)
+{
+  // Initialize static buffers
+  const unsigned bufferLen = 1024;
+
+  std::string prefix{};
+#ifndef NDEBUG
+  // Get the path of the block
+  const char_T* blockPath = ssGetPath(S);
+  prefix = "\n==> ";
+  prefix += blockPath;
+#endif // NDEBUG
+
+  // Notify warnings
+  if (!blockfactory::core::Log::getSingleton().getWarnings().empty()) {
+    // Get the warnings
+    std::string warningMsg = prefix + blockfactory::core::Log::getSingleton().getWarnings();
+
+    // Trim the message if needed
+    if (warningMsg.length() >= bufferLen) {
+      warningMsg = warningMsg.substr(0, bufferLen - 1);
+    }
+
+    // Forward to Simulink
+    char warningBuffer[bufferLen];
+    sprintf(warningBuffer, "%s", warningMsg.c_str());
+    ssWarning(S, warningBuffer);
+
+    if (ForwardLogsToStdErr) {
+      fprintf(stderr, "%s", warningBuffer);
+    }
+
+    // Clean the notified warnings
+    blockfactory::core::Log::getSingleton().clearWarnings();
+  }
+
+  // Notify errors
+  if (!status) {
+    // Get the errors
+    std::string errorMsg = prefix + blockfactory::core::Log::getSingleton().getErrors();
+
+    // Trim the message if needed
+    if (errorMsg.length() >= bufferLen) {
+      errorMsg = errorMsg.substr(0, bufferLen - 1);
+    }
+
+    // Forward to Simulink
+    char errorBuffer[bufferLen];
+    sprintf(errorBuffer, "%s", errorMsg.c_str());
+    ssSetErrorStatus(S, errorBuffer);
+
+    if (ForwardLogsToStdErr) {
+      fprintf(stderr, "%s", errorBuffer);
+    }
+
+    // Clean the notified errors
+    blockfactory::core::Log::getSingleton().clearErrors();
+    return;
+  }
 }
 
 // Required S-function trailer
