@@ -16,7 +16,7 @@
 static const size_t NumPWork = 1;
 const bool ForwardLogsToStdErr = true;
 
-static void catchLogMessages(bool status, SimStruct* S);
+static void catchLogMessages(bool status, SimStruct *S);
 
 /*====================*
  * S-function methods *
@@ -27,8 +27,7 @@ static void catchLogMessages(bool status, SimStruct* S);
  *    The sizes information is used by Simulink to determine the S-function
  *    block's characteristics (number of inputs, outputs, states, etc.).
  */
-static void mdlInitializeSizes(SimStruct *S)
-{
+static void mdlInitializeSizes(SimStruct *S) {
     // Initialize the Log singleton
     blockfactory::core::Log::getSingleton().clear();
 
@@ -127,52 +126,49 @@ static void mdlInitializeSizes(SimStruct *S)
 }
 
 
-
 /* Function: mdlInitializeSampleTimes =========================================
  * Abstract:
  *    This function is used to specify the sample time(s) for your
  *    S-function. You must register the same number of sample times as
  *    specified in ssSetNumSampleTimes.
  */
-static void mdlInitializeSampleTimes(SimStruct *S)
-{
+static void mdlInitializeSampleTimes(SimStruct *S) {
     ssSetSampleTime(S, 0, INHERITED_SAMPLE_TIME);
     ssSetOffsetTime(S, 0, 0.0);
 
 }
 
 
-
 #define MDL_INITIALIZE_CONDITIONS   /* Change to #undef to remove function */
 #if defined(MDL_INITIALIZE_CONDITIONS)
-  /* Function: mdlInitializeConditions ========================================
-   * Abstract:
-   *    In this function, you should initialize the continuous and discrete
-   *    states for your S-function block.  The initial states are placed
-   *    in the state vector, ssGetContStates(S) or ssGetRealDiscStates(S).
-   *    You can also perform any other initialization activities that your
-   *    S-function may require. Note, this routine will be called at the
-   *    start of simulation and if it is present in an enabled subsystem
-   *    configured to reset states, it will be call when the enabled subsystem
-   *    restarts execution to reset the states.
-   */
-  static void mdlInitializeConditions(SimStruct *S)
-  {
-  }
+
+/* Function: mdlInitializeConditions ========================================
+ * Abstract:
+ *    In this function, you should initialize the continuous and discrete
+ *    states for your S-function block.  The initial states are placed
+ *    in the state vector, ssGetContStates(S) or ssGetRealDiscStates(S).
+ *    You can also perform any other initialization activities that your
+ *    S-function may require. Note, this routine will be called at the
+ *    start of simulation and if it is present in an enabled subsystem
+ *    configured to reset states, it will be call when the enabled subsystem
+ *    restarts execution to reset the states.
+ */
+static void mdlInitializeConditions(SimStruct *S) {
+}
+
 #endif /* MDL_INITIALIZE_CONDITIONS */
 
 
-
 #define MDL_START  /* Change to #undef to remove function */
-#if defined(MDL_START) 
-  /* Function: mdlStart =======================================================
-   * Abstract:
-   *    This function is called once at start of model execution. If you
-   *    have states that should be initialized once, this is the place
-   *    to do it.
-   */
-  static void mdlStart(SimStruct *S)
-  {
+#if defined(MDL_START)
+
+/* Function: mdlStart =======================================================
+ * Abstract:
+ *    This function is called once at start of model execution. If you
+ *    have states that should be initialized once, this is the place
+ *    to do it.
+ */
+static void mdlStart(SimStruct *S) {
     // Create the SimConnect Interface and save it in the Pointer work vector
     auto *interface = new SimConnectInterface();
     ssSetPWorkValue(S, 0, interface);
@@ -183,17 +179,17 @@ static void mdlInitializeSampleTimes(SimStruct *S)
         return;
     }
 
-      DTypeId    dType    = ssGetOutputPortDataType(S, 0);
-      int_T size = ssGetDataTypeSize(S, dType);
+    DTypeId dType = ssGetOutputPortDataType(S, 0);
+    int_T size = ssGetDataTypeSize(S, dType);
 
-      ssWarning(S, std::to_string(size).c_str());
+    ssWarning(S, std::to_string(size).c_str());
 
     bool res = interface->connect();
 
-      catchLogMessages(res, S);
-  }
-#endif /*  MDL_START */
+    catchLogMessages(res, S);
+}
 
+#endif /*  MDL_START */
 
 
 /* Function: mdlOutputs =======================================================
@@ -201,40 +197,39 @@ static void mdlInitializeSampleTimes(SimStruct *S)
  *    In this function, you compute the outputs of your S-function
  *    block.
  */
-static void mdlOutputs(SimStruct *S, int_T tid)
-{
+static void mdlOutputs(SimStruct *S, int_T tid) {
     //const real_T *u = (const real_T*) ssGetInputPortSignal(S,0);
     //real_T       *y = (real_T*) ssGetOutputPortSignal(S,0);
 }
 
 #define MDL_UPDATE  /* Change to #undef to remove function */
 #if defined(MDL_UPDATE)
-  /* Function: mdlUpdate ======================================================
-   * Abstract:
-   *    This function is called once for every major integration time step.
-   *    Discrete states are typically updated here, but this function is useful
-   *    for performing any tasks that should only take place once per
-   *    integration step.
-   */
-  static void mdlUpdate(SimStruct *S, int_T tid)
-  {
-  }
-#endif /* MDL_UPDATE */
 
+/* Function: mdlUpdate ======================================================
+ * Abstract:
+ *    This function is called once for every major integration time step.
+ *    Discrete states are typically updated here, but this function is useful
+ *    for performing any tasks that should only take place once per
+ *    integration step.
+ */
+static void mdlUpdate(SimStruct *S, int_T tid) {
+}
+
+#endif /* MDL_UPDATE */
 
 
 #define MDL_DERIVATIVES  /* Change to #undef to remove function */
 #if defined(MDL_DERIVATIVES)
-  /* Function: mdlDerivatives =================================================
-   * Abstract:
-   *    In this function, you compute the S-function block's derivatives.
-   *    The derivatives are placed in the derivative vector, ssGetdX(S).
-   */
-  static void mdlDerivatives(SimStruct *S)
-  {
-  }
-#endif /* MDL_DERIVATIVES */
 
+/* Function: mdlDerivatives =================================================
+ * Abstract:
+ *    In this function, you compute the S-function block's derivatives.
+ *    The derivatives are placed in the derivative vector, ssGetdX(S).
+ */
+static void mdlDerivatives(SimStruct *S) {
+}
+
+#endif /* MDL_DERIVATIVES */
 
 
 /* Function: mdlTerminate =====================================================
@@ -243,8 +238,7 @@ static void mdlOutputs(SimStruct *S, int_T tid)
  *    at the termination of a simulation.  For example, if memory was
  *    allocated in mdlStart, this is the place to free it.
  */
-static void mdlTerminate(SimStruct *S)
-{
+static void mdlTerminate(SimStruct *S) {
     if (!ssGetPWork(S)) {
         return;
     }
@@ -256,7 +250,7 @@ static void mdlTerminate(SimStruct *S)
     }
 
     // Get SimConnect Interface
-    auto *interface = static_cast<SimConnectInterface*>(ssGetPWorkValue(S, 0));
+    auto *interface = static_cast<SimConnectInterface *>(ssGetPWorkValue(S, 0));
 
     // Disconnect from SimConnect
     interface->disconnect();
@@ -264,70 +258,71 @@ static void mdlTerminate(SimStruct *S)
     delete interface;
 }
 
-static void catchLogMessages(bool status, SimStruct* S)
-{
-  // Initialize static buffers
-  const unsigned bufferLen = 1024;
+static void catchLogMessages(bool status, SimStruct *S) {
+    // Initialize static buffers
+    const unsigned bufferLen = 1024;
 
-  std::string prefix{};
+    std::string prefix{};
 #ifndef NDEBUG
-  // Get the path of the block
-  const char_T* blockPath = ssGetPath(S);
-  prefix = "\n==> ";
-  prefix += blockPath;
+    // Get the path of the block
+    const char_T *blockPath = ssGetPath(S);
+    prefix = "\n==> ";
+    prefix += blockPath;
 #endif // NDEBUG
 
-  // Notify warnings
-  if (!blockfactory::core::Log::getSingleton().getWarnings().empty()) {
-    // Get the warnings
-    std::string warningMsg = prefix + blockfactory::core::Log::getSingleton().getWarnings();
+    // Notify warnings
+    if (!blockfactory::core::Log::getSingleton().getWarnings().empty()) {
+        // Get the warnings
+        std::string warningMsg = prefix + blockfactory::core::Log::getSingleton().getWarnings();
 
-    // Trim the message if needed
-    if (warningMsg.length() >= bufferLen) {
-      warningMsg = warningMsg.substr(0, bufferLen - 1);
+        // Trim the message if needed
+        if (warningMsg.length() >= bufferLen) {
+            warningMsg = warningMsg.substr(0, bufferLen - 1);
+        }
+
+        // Forward to Simulink
+        char warningBuffer[bufferLen];
+        sprintf(warningBuffer, "%s", warningMsg.c_str());
+        ssWarning(S, warningBuffer);
+
+        if (ForwardLogsToStdErr) {
+            fprintf(stderr, "%s", warningBuffer);
+        }
+
+        // Clean the notified warnings
+        blockfactory::core::Log::getSingleton().clearWarnings();
     }
 
-    // Forward to Simulink
-    char warningBuffer[bufferLen];
-    sprintf(warningBuffer, "%s", warningMsg.c_str());
-    ssWarning(S, warningBuffer);
+    // Notify errors
+    if (!status) {
+        // Get the errors
+        std::string errorMsg = prefix + blockfactory::core::Log::getSingleton().getErrors();
 
-    if (ForwardLogsToStdErr) {
-      fprintf(stderr, "%s", warningBuffer);
+        // Trim the message if needed
+        if (errorMsg.length() >= bufferLen) {
+            errorMsg = errorMsg.substr(0, bufferLen - 1);
+        }
+
+        // Forward to Simulink
+        char errorBuffer[bufferLen];
+        sprintf(errorBuffer, "%s", errorMsg.c_str());
+        ssSetErrorStatus(S, errorBuffer);
+
+        if (ForwardLogsToStdErr) {
+            fprintf(stderr, "%s", errorBuffer);
+        }
+
+        // Clean the notified errors
+        blockfactory::core::Log::getSingleton().clearErrors();
+        return;
     }
-
-    // Clean the notified warnings
-    blockfactory::core::Log::getSingleton().clearWarnings();
-  }
-
-  // Notify errors
-  if (!status) {
-    // Get the errors
-    std::string errorMsg = prefix + blockfactory::core::Log::getSingleton().getErrors();
-
-    // Trim the message if needed
-    if (errorMsg.length() >= bufferLen) {
-      errorMsg = errorMsg.substr(0, bufferLen - 1);
-    }
-
-    // Forward to Simulink
-    char errorBuffer[bufferLen];
-    sprintf(errorBuffer, "%s", errorMsg.c_str());
-    ssSetErrorStatus(S, errorBuffer);
-
-    if (ForwardLogsToStdErr) {
-      fprintf(stderr, "%s", errorBuffer);
-    }
-
-    // Clean the notified errors
-    blockfactory::core::Log::getSingleton().clearErrors();
-    return;
-  }
 }
 
 // Required S-function trailer
 #ifdef MATLAB_MEX_FILE /* Is this file being compiled as a MEX-file? */
+
 #include <simulink.c> /* MEX-file interface mechanism */
+
 #else
 #include "cg_sfun.h" /* Code generation registration function */
 #endif

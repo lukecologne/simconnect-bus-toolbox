@@ -3,3 +3,7 @@
 bool SimConnectInterface::connect() {
 
 }
+
+void SimConnectInterface::disconnect() {
+
+}

@@ -23,6 +23,7 @@ include_directories(
 matlab_add_mex(
     NAME SimConnectBusInterface
     SRC src/Simulink/SimConnectBusInterface.cpp
+        src/Interface/SimConnectInterface.cpp
     LINK_TO BlockFactory::Core)
 
 add_custom_command(
