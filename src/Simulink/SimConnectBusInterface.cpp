@@ -174,7 +174,7 @@ static void mdlStart(SimStruct *S) {
     bool res = interface->connect(lvarPrefix);
 
     if (!res) {
-        ssSetErrorStatus(S, "Failed to connect to Simulink");
+        ssSetErrorStatus(S, "Failed to connect to SimConnect");
         return;
     }
 
