@@ -112,7 +112,7 @@ static void mdlInitializeSizes(SimStruct *S) {
      * built-in block */
     ssSetOperatingPointCompliance(S, USE_DEFAULT_OPERATING_POINT);
 
-    ssSetRuntimeThreadSafetyCompliance(S, RUNTIME_THREAD_SAFETY_COMPLIANCE_TRUE);
+    ssSetRuntimeThreadSafetyCompliance(S, RUNTIME_THREAD_SAFETY_COMPLIANCE_UNKNOWN);
     ssSetOptions(S, SS_OPTION_EXCEPTION_FREE_CODE);
 }
 
@@ -188,8 +188,6 @@ static void mdlStart(SimStruct *S) {
         dType = ssGetOutputPortDataType(S, 0);
     }
     int_T size = ssGetDataTypeSize(S, dType);
-
-    ssWarning(S, std::to_string(size).c_str());
 
     res = interface->createClientData(size);
 
