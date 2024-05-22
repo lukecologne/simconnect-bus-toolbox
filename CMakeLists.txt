@@ -5,8 +5,6 @@ project(simconnect-bus-toolbox LANGUAGES CXX VERSION 0.8.2)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-list(APPEND CMAKE_PREFIX_PATH "${CMAKE_SOURCE_DIR}/deps/BlockFactory")
-
 find_package(Matlab COMPONENTS
     ENG_LIBRARY
     SIMULINK)
