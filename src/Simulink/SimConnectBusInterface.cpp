@@ -257,18 +257,24 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
  *    integration step.
  */
 static void mdlUpdate(SimStruct *S, int_T tid) {
-    // Check if the block should act as sink. If not, return.
-    bool isSink = static_cast<bool>(mxGetPr(ssGetSFcnParam(S, IsSinkParamIndex))[0]);
-    if (!isSink) {
-        return;
-    }
-
     if (ssGetNumPWork(S) != NumPWork) {
         ssSetErrorStatus(S, "PWork did not contain correct number of elements.");
         return;
     }
 
     auto* interface = static_cast<SimConnectInterface*>(ssGetPWorkValue(S, 0));
+
+    // Check the SimConnect Connection status. If we are no longer connected, throw an error and exit.
+    if (!interface->getIsConnected()) {
+        ssSetErrorStatus(S, "SimConnect is no longer connected.");
+        return;
+    }
+
+    // Check if the block should act as sink. If not, return.
+    bool isSink = static_cast<bool>(mxGetPr(ssGetSFcnParam(S, IsSinkParamIndex))[0]);
+    if (!isSink) {
+        return;
+    }
 
     // Get size and data of bus
     DTypeId dType = ssGetInputPortDataType(S, 0);

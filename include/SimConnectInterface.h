@@ -23,6 +23,8 @@ public:
 
     bool requestClientData();
 
+    bool getIsConnected();
+
 private:
     bool isConnected = false;
     HANDLE hSimConnect = nullptr;

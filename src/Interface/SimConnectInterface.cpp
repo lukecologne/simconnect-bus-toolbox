@@ -68,6 +68,10 @@ bool SimConnectInterface::requestClientData() {
     return false;
 }
 
+bool SimConnectInterface::getIsConnected() {
+    return isConnected;
+}
+
 void SimConnectInterface::processDispatch() {
     DWORD cbData;
     SIMCONNECT_RECV *pData;
@@ -78,7 +82,7 @@ void SimConnectInterface::processDispatch() {
 
 void SimConnectInterface::dispatchProcedure(SIMCONNECT_RECV *pData, DWORD *cbData) {
     switch (pData->dwID) {
-        case SIMCONNECT_RECV_ID_CLIENT_DATA:
+        case SIMCONNECT_RECV_ID_CLIENT_DATA: {
             auto *event = (SIMCONNECT_RECV_CLIENT_DATA*)pData;
             switch (event->dwRequestID) {
                 case 0:
@@ -86,5 +90,15 @@ void SimConnectInterface::dispatchProcedure(SIMCONNECT_RECV *pData, DWORD *cbDat
                     break;
             }
             break;
+        }
+        case SIMCONNECT_RECV_ID_QUIT: {
+            disconnect();
+            break;
+        }
+        case SIMCONNECT_RECV_ID_EXCEPTION: {
+            // TODO Handle exception/throw error
+            break;
+        }
+
     }
 }
