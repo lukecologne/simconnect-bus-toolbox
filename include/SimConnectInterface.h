@@ -7,9 +7,9 @@
 
 class SimConnectInterface {
 public:
-    SimConnectInterface() = default;
+    explicit SimConnectInterface(size_t dataSize);
 
-    ~SimConnectInterface() = default;
+    ~SimConnectInterface();
 
     bool connect(const std::string &name);
 
@@ -17,7 +17,7 @@ public:
 
     bool createClientData(int size);
 
-    bool setClientData(int size, void *data);
+    bool setClientData(int size, void *pDataSet);
 
     void* getClientData();
 
@@ -31,6 +31,7 @@ private:
     std::string connectionName;
 
     void *data;
+    size_t dataSize;
 
     void processDispatch();
 

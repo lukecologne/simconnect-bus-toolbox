@@ -160,8 +160,18 @@ static void mdlInitializeConditions(SimStruct *S) {
  *    to do it.
  */
 static void mdlStart(SimStruct *S) {
+    bool isSink = static_cast<bool>(mxGetPr(ssGetSFcnParam(S, IsSinkParamIndex))[0]);
+    // Get size of bus
+    DTypeId dType;
+    if (isSink) {
+        dType = ssGetInputPortDataType(S, 0);
+    } else {
+        dType = ssGetOutputPortDataType(S, 0);
+    }
+    int_T size = ssGetDataTypeSize(S, dType);
+
     // Create the SimConnect Interface and save it in the Pointer work vector
-    auto *interface = new SimConnectInterface();
+    auto *interface = new SimConnectInterface(size);
     ssSetPWorkValue(S, 0, interface);
 
     if (!interface) {
@@ -177,17 +187,6 @@ static void mdlStart(SimStruct *S) {
         ssSetErrorStatus(S, "Failed to connect to SimConnect");
         return;
     }
-
-    bool isSink = static_cast<bool>(mxGetPr(ssGetSFcnParam(S, IsSinkParamIndex))[0]);
-
-    // Get size of bus
-    DTypeId dType;
-    if (isSink) {
-        dType = ssGetInputPortDataType(S, 0);
-    } else {
-        dType = ssGetOutputPortDataType(S, 0);
-    }
-    int_T size = ssGetDataTypeSize(S, dType);
 
     res = interface->createClientData(size);
 
@@ -231,6 +230,10 @@ static void mdlOutputs(SimStruct *S, int_T tid) {
 
 
     auto *interface = static_cast<SimConnectInterface*>(ssGetPWorkValue(S, 0));
+    if (interface == nullptr) {
+        ssSetErrorStatus(S, "SimConnectInterface is nullptr");
+        return;
+    }
 
     void *y_result = interface->getClientData();
 
@@ -263,6 +266,10 @@ static void mdlUpdate(SimStruct *S, int_T tid) {
     }
 
     auto* interface = static_cast<SimConnectInterface*>(ssGetPWorkValue(S, 0));
+    if (interface == nullptr) {
+        ssSetErrorStatus(S, "SimConnectInterface is nullptr");
+        return;
+    }
 
     // Check the SimConnect Connection status. If we are no longer connected, throw an error and exit.
     if (!interface->getIsConnected()) {
@@ -324,11 +331,18 @@ static void mdlTerminate(SimStruct *S) {
 
     // Get SimConnect Interface
     auto *interface = static_cast<SimConnectInterface *>(ssGetPWorkValue(S, 0));
+    if (interface == nullptr) {
+        ssSetErrorStatus(S, "SimConnectInterface is nullptr");
+        return;
+    }
 
     // Disconnect from SimConnect
     interface->disconnect();
 
     delete interface;
+
+    // Clean the PWork vector
+    ssSetPWorkValue(S, 0, nullptr);
 }
 
 // Required S-function trailer

@@ -1,5 +1,19 @@
 #include "SimConnectInterface.h"
 
+#include "simstruc.h"
+
+SimConnectInterface::SimConnectInterface(size_t dataSize) {
+    this->dataSize = dataSize;
+    data = malloc(dataSize);
+}
+
+SimConnectInterface::~SimConnectInterface() {
+    if (data != nullptr) {
+        free(data);
+        data = nullptr;
+    }
+}
+
 bool SimConnectInterface::connect(const std::string &name) {
     this->connectionName = name;
 
@@ -27,6 +41,10 @@ bool SimConnectInterface::createClientData(int size) {
         return false;
     }
 
+    if (this->dataSize != size) {
+        return false;
+    }
+
     HRESULT result = true;
 
     result &= SimConnect_MapClientDataNameToID(hSimConnect, connectionName.c_str(), 0);
@@ -42,8 +60,18 @@ bool SimConnectInterface::createClientData(int size) {
     return false;
 }
 
-bool SimConnectInterface::setClientData(int size, void *data) {
-    HRESULT result = SimConnect_SetClientData(hSimConnect, 0, 0, SIMCONNECT_CLIENT_DATA_SET_FLAG_DEFAULT, 0, size, data);
+bool SimConnectInterface::setClientData(int size, void *pDataSet) {
+    if (this->dataSize != size) {
+        return false;
+    }
+
+    if (pDataSet == nullptr) {
+        return false;
+    }
+
+    std::memcpy(data, pDataSet, this->dataSize);
+
+    HRESULT result = SimConnect_SetClientData(hSimConnect, 0, 0, SIMCONNECT_CLIENT_DATA_SET_FLAG_DEFAULT, 0, this->dataSize, data);
 
     if (result == S_OK) {
         return true;
@@ -86,7 +114,12 @@ void SimConnectInterface::dispatchProcedure(SIMCONNECT_RECV *pData, DWORD *cbDat
             auto *event = (SIMCONNECT_RECV_CLIENT_DATA*)pData;
             switch (event->dwRequestID) {
                 case 0:
-                    data = &event->dwData;
+                    // We memcpy the resulting data, so that we can use it even potentially in the next iteration
+                    // if the sim has not yet written another Client data frame (In this case the pointer could be invalid).
+                    if (data == nullptr) {
+                        return;
+                    }
+                    std::memcpy(data, &event->dwData, this->dataSize);
                     break;
             }
             break;
