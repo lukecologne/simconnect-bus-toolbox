@@ -18,6 +18,7 @@
 *.out
 *.app
 build*
+cmake-build-*
 *.old
 *.bak
 CMakeLists.txt.*
@@ -31,4 +32,7 @@ slprj
 *.tmw
 *.dmr
 *.mk
+.vs/**
+.idea/**
+matlab/
 
